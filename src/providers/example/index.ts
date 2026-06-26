@@ -1,0 +1,1 @@
+export { ExampleAdapter } from "./example";
