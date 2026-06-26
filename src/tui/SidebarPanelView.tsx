@@ -14,7 +14,7 @@ export function SidebarPanelView(props: { api: TuiPluginApi; statusText: () => s
   return (
     <box padding={1}>
       <text attributes={TextAttributes.BOLD} fg={theme().text}>
-        Plugin Kit
+        Budget Maxxer
       </text>
       <text fg={theme().textMuted}>
         {"\n"}

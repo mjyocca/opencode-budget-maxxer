@@ -1,12 +1,16 @@
 {
-  "name": "opencode-plugin-kit",
+  "name": "opencode-budget-maxxer",
   "version": "0.0.0",
-  "description": "Starter kit for building opencode plugins with server + TUI support",
+  "description": "Surface provider limits and manage daily/weekly budgets with usage metrics for OpenCode and GitHub Copilot backends",
+  "author": "mjyocca",
   "keywords": [
     "opencode",
-    "opencode-plugin",
-    "plugin-template",
-    "tui"
+    "plugin",
+    "budget",
+    "usage",
+    "limits",
+    "copilot",
+    "budget-management"
   ],
   "license": "MIT",
   "type": "module",

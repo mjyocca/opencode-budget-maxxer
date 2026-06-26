@@ -1,1 +1,1 @@
-export const PLUGIN_ID = "opencode-plugin-kit";
+export const PLUGIN_ID = "opencode-budget-maxxer";

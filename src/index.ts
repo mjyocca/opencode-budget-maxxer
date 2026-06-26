@@ -30,8 +30,8 @@ export const PluginServer: Plugin = async (
     args: {},
     execute: async () => {
       return {
-        title: "Plugin Kit — Server",
-        output: "opencode-plugin-kit server plugin is active.",
+        title: "Budget Maxxer — Server",
+        output: "opencode-budget-maxxer server plugin is active.",
       };
     },
   });
