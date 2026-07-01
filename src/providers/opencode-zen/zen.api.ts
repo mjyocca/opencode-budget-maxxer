@@ -1,22 +1,22 @@
 import { fetchWithTimeout } from "@/lib/http/fetch";
 import { tryFetch } from "@/lib/provider/result-helpers";
 import type { ProviderResult } from "@/lib/provider/types";
-import { resolveGoCredentials } from "./go.auth";
-import type { GoRateLimit, GoWindow } from "./go.types";
+import { resolveZenCredentials } from "./zen.auth";
+import type { ZenUsage } from "./zen.types";
 
 const DASHBOARD_URL = "https://opencode.ai";
 
-export async function queryGoRateLimit(
+export async function queryZenUsage(
   opts?: { timeoutMs?: number },
-): Promise<ProviderResult<GoRateLimit>> {
+): Promise<ProviderResult<ZenUsage>> {
   return tryFetch(async () => {
-    const creds = await resolveGoCredentials();
+    const creds = await resolveZenCredentials();
     if (!creds) return null;
 
     const timeout = opts?.timeoutMs ?? 8000;
 
     const res = await fetchWithTimeout(
-      `${DASHBOARD_URL}/workspace/${encodeURIComponent(creds.workspaceId)}/go`,
+      `${DASHBOARD_URL}/workspace/${encodeURIComponent(creds.workspaceId)}`,
       {
         headers: {
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -29,39 +29,81 @@ export async function queryGoRateLimit(
 
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        throw new Error("OpenCode Go authentication failed. Refresh your auth cookie.");
+        throw new Error("OpenCode Zen authentication failed. Refresh your auth cookie.");
       }
-      throw new Error(`OpenCode Go request failed with HTTP ${res.status}.`);
+      throw new Error(`OpenCode Zen request failed with HTTP ${res.status}.`);
     }
 
     const html = await res.text();
 
-    const rolling = extractWindow(html, "rollingUsage");
-    const weekly = extractWindow(html, "weeklyUsage");
-    const monthly = extractWindow(html, "monthlyUsage");
-
-    if (!rolling && !weekly && !monthly) {
-      throw new Error("Could not parse quota data from the OpenCode Go dashboard. The page format may have changed.");
+    // Zen billing data is in a single object like:
+    // $R[37]={customerID:"...",balance:1069134971,reload:!1,reloadAmount:25,monthlyLimit:200,monthlyUsage:218828968,...}
+    // Field order: balance, reload, ..., monthlyLimit, monthlyUsage
+    const billingMatch = html.match(/\$R\[\d+\]=\{[^}]*balance\s*:\s*([^,}]+)[^}]*reload\s*:\s*([^,}]+)[^}]*monthlyLimit\s*:\s*([^,}]+)[^}]*monthlyUsage\s*:\s*([^,}]+)/);
+    
+    if (!billingMatch) {
+      throw new Error("Could not parse usage data from the OpenCode Zen dashboard. The page format may have changed.");
     }
 
-    return { rolling5h: rolling, weekly, monthly } satisfies GoRateLimit;
-  }, "OpenCode Go");
+    const balance = asNumber(billingMatch[1]);
+    const reloadRaw = billingMatch[2].trim();
+    const autoReload = reloadRaw === "!0" || reloadRaw === "true";
+    const monthlyLimit = asNumber(billingMatch[3]);
+    const monthlyUsage = asNumber(billingMatch[4]);
+
+    if (balance === null) {
+      throw new Error("Could not parse usage data from the OpenCode Zen dashboard. The page format may have changed.");
+    }
+
+    // Zen billing values from HTML:
+    // balance:3361900000 (100-millionths of a dollar → $33.62)
+    // monthlyUsage:426000000 (100-millionths of a dollar → $4.26)
+    // monthlyLimit:200 (already in dollars)
+    const toDollars = (v: number | null): number | null => {
+      if (v == null) return null;
+      if (v > 10000000) return v / 100000000; // 100-millionths of a dollar
+      if (v > 1000) return v / 100; // cents
+      return v; // already dollars
+    };
+
+    // monthlyLimit is already in dollars (e.g., 200 = $200), don't convert
+    const monthlyLimitDollars = monthlyLimit != null && monthlyLimit > 10000000
+      ? monthlyLimit / 100000000
+      : monthlyLimit;
+
+    return {
+      balance: toDollars(balance) ?? 0,
+      monthlySpending: toDollars(monthlyUsage) ?? 0,
+      monthlyLimit: monthlyLimitDollars,
+      autoReload: autoReload ?? false,
+    } satisfies ZenUsage;
+  }, "OpenCode Zen");
 }
 
-function extractWindow(html: string, fieldName: string): GoWindow | null {
+function extractNumber(html: string, fieldName: string): number | null {
   const objectLiteral = extractObjectLiteral(html, fieldName);
   if (!objectLiteral) return null;
 
   const parsed = parseLooseObjectLiteral(objectLiteral) as Record<string, unknown>;
-  const usagePercent = asNumber(parsed.usagePercent);
-  const resetInSec = asNumber(parsed.resetInSec);
+  return asNumber(parsed.value ?? parsed.amount ?? parsed.balance ?? parsed[fieldName]);
+}
 
-  if (usagePercent === null || resetInSec === null) return null;
+function extractNullableNumber(html: string, fieldName: string): number | null {
+  const objectLiteral = extractObjectLiteral(html, fieldName);
+  if (!objectLiteral) return null;
 
-  return {
-    usagePercent: Math.round(usagePercent),
-    resetInSec: Math.max(0, Math.round(resetInSec)),
-  };
+  const parsed = parseLooseObjectLiteral(objectLiteral) as Record<string, unknown>;
+  return asNumber(parsed.value ?? parsed.amount ?? parsed.limit ?? parsed[fieldName]);
+}
+
+function extractBoolean(html: string, fieldName: string): boolean | null {
+  const objectLiteral = extractObjectLiteral(html, fieldName);
+  if (!objectLiteral) return null;
+
+  const parsed = parseLooseObjectLiteral(objectLiteral) as Record<string, unknown>;
+  const val = parsed.value ?? parsed.enabled ?? parsed[fieldName];
+  if (typeof val === "boolean") return val;
+  return null;
 }
 
 function extractObjectLiteral(html: string, fieldName: string): string | null {
@@ -146,7 +188,7 @@ function parseLooseObjectLiteral(input: string): unknown {
   try {
     return JSON.parse(normalized);
   } catch {
-    throw new Error("Could not parse an OpenCode Go quota payload.");
+    throw new Error("Could not parse an OpenCode Zen usage payload.");
   }
 }
 

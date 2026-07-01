@@ -1,14 +1,11 @@
-export interface GoAuthEntry {
-  type: "oauth" | "api";
-  access?: string;
-  key?: string;
-  workspaceId?: string;
-  expires?: number;
+export interface GoCredentials {
+  authCookie: string;
+  workspaceId: string;
 }
 
 export interface GoWindow {
-  percentRemaining: number;
-  resetsAt: Date | null;
+  usagePercent: number;
+  resetInSec: number;
 }
 
 export interface GoRateLimit {

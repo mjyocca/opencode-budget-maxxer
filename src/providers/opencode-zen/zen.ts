@@ -8,19 +8,19 @@ import type {
   ProviderResult,
   ProviderRequestOptions,
 } from "@/lib/provider/types";
-import { resolveGoCredentials } from "./go.auth";
-import { queryGoRateLimit } from "./go.api";
+import { resolveZenCredentials } from "./zen.auth";
+import { queryZenUsage } from "./zen.api";
 
-export class OpenCodeGoAdapter implements OpenCodeAdapter, ProviderClient {
-  readonly id = "opencode-go";
-  readonly displayName = "OpenCode Go";
+export class OpenCodeZenAdapter implements OpenCodeAdapter, ProviderClient {
+  readonly id = "opencode";
+  readonly displayName = "OpenCode Zen";
 
   async loadAuth(_ctx: AdapterContext): Promise<AdapterAuth> {
-    const creds = await resolveGoCredentials();
+    const creds = await resolveZenCredentials();
     if (!creds) return {};
     return {
       apiKey: creds.authCookie,
-      baseURL: `https://opencode.ai/workspace/${creds.workspaceId}/go`,
+      baseURL: `https://opencode.ai/workspace/${creds.workspaceId}/zen`,
     };
   }
 
@@ -28,8 +28,8 @@ export class OpenCodeGoAdapter implements OpenCodeAdapter, ProviderClient {
     path: string,
     opts?: ProviderRequestOptions,
   ): Promise<ProviderResult<T>> {
-    if (path === "/rate-limit") {
-      return queryGoRateLimit({
+    if (path === "/usage") {
+      return queryZenUsage({
         timeoutMs: opts?.timeoutMs,
       }) as Promise<ProviderResult<T>>;
     }

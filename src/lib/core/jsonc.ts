@@ -114,5 +114,9 @@ function parseJsonOrJsoncWithPath(content: string, path: string): ParseResult {
   return { config, path, isJsonc };
 }
 
-export { stripJsonc, parseJsonOrJsonc, parseJsonOrJsoncWithPath };
+function stringifyJsonc(obj: unknown, space = 2): string {
+  return JSON.stringify(obj, null, space);
+}
+
+export { stripJsonc, parseJsonOrJsonc, parseJsonOrJsoncWithPath, stringifyJsonc };
 export type { ParseResult };
