@@ -1,24 +1,20 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { queryGoRateLimit } from "@/providers/opencode-go/go.api";
-import * as goAuth from "@/providers/opencode-go/go.auth";
+import { queryZenUsage } from "@/providers/opencode-zen/zen.api";
+import * as zenAuth from "@/providers/opencode-zen/zen.auth";
 
 const SAMPLE_HTML = `
 <script>
-window.__SOLID_HYDRATION_DATA__ = {
-  rollingUsage:$R[0]={usagePercent:45,resetInSec:2520},
-  weeklyUsage:$R[1]={usagePercent:20,resetInSec:259200},
-  monthlyUsage:$R[2]={usagePercent:10,resetInSec:1728000}
-};
+$R[37]={customerID:"cus_test",paymentMethodType:"link",balance:1520000000,reload:!0,reloadAmount:25,reloadAmountMin:10,reloadTrigger:5,reloadTriggerMin:5,monthlyLimit:20,monthlyUsage:480000000,timeMonthlyUsageUpdated:$R[38]=new Date("2026-07-01T02:32:23.000Z")}
 </script>
 `;
 
 const PARTIAL_HTML = `
 <script>
-rollingUsage:$R[0]={usagePercent:60,resetInSec:1800}
+$R[37]={customerID:"cus_test",balance:1050000000,reload:!1,reloadAmount:25,monthlyLimit:null,monthlyUsage:230000000}
 </script>
 `;
 
-describe("queryGoRateLimit", () => {
+describe("queryZenUsage", () => {
   let originalEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
@@ -35,15 +31,15 @@ describe("queryGoRateLimit", () => {
   });
 
   it("returns notAttempted when no credentials", async () => {
-    vi.spyOn(goAuth, "resolveGoCredentials").mockResolvedValue(null);
-    const result = await queryGoRateLimit();
+    vi.spyOn(zenAuth, "resolveZenCredentials").mockResolvedValue(null);
+    const result = await queryZenUsage();
     expect(result.attempted).toBe(false);
     expect(result.data).toBeNull();
     expect(result.error).toBeNull();
   });
 
-  it("parses all three windows from dashboard HTML", async () => {
-    vi.spyOn(goAuth, "resolveGoCredentials").mockResolvedValue({
+  it("parses balance, spending, limit, and autoReload from dashboard HTML", async () => {
+    vi.spyOn(zenAuth, "resolveZenCredentials").mockResolvedValue({
       authCookie: "Fe26.2**test-cookie",
       workspaceId: "wrk-test-123",
     });
@@ -55,16 +51,17 @@ describe("queryGoRateLimit", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await queryGoRateLimit();
+    const result = await queryZenUsage();
     expect(result.attempted).toBe(true);
     expect(result.data).not.toBeNull();
-    expect(result.data?.rolling5h).toEqual({ usagePercent: 45, resetInSec: 2520 });
-    expect(result.data?.weekly).toEqual({ usagePercent: 20, resetInSec: 259200 });
-    expect(result.data?.monthly).toEqual({ usagePercent: 10, resetInSec: 1728000 });
+    expect(result.data?.balance).toBe(15.20);
+    expect(result.data?.monthlySpending).toBe(4.80);
+    expect(result.data?.monthlyLimit).toBe(20);
+    expect(result.data?.autoReload).toBe(true);
   });
 
-  it("parses partial data when only some windows present", async () => {
-    vi.spyOn(goAuth, "resolveGoCredentials").mockResolvedValue({
+  it("parses partial data when only some fields present", async () => {
+    vi.spyOn(zenAuth, "resolveZenCredentials").mockResolvedValue({
       authCookie: "Fe26.2**test-cookie",
       workspaceId: "wrk-test-123",
     });
@@ -76,16 +73,16 @@ describe("queryGoRateLimit", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await queryGoRateLimit();
+    const result = await queryZenUsage();
     expect(result.attempted).toBe(true);
     expect(result.data).not.toBeNull();
-    expect(result.data?.rolling5h).toEqual({ usagePercent: 60, resetInSec: 1800 });
-    expect(result.data?.weekly).toBeNull();
-    expect(result.data?.monthly).toBeNull();
+    expect(result.data?.balance).toBe(10.50);
+    expect(result.data?.monthlySpending).toBe(2.30);
+    expect(result.data?.monthlyLimit).toBeNull();
   });
 
   it("throws on 401/403 with auth error message", async () => {
-    vi.spyOn(goAuth, "resolveGoCredentials").mockResolvedValue({
+    vi.spyOn(zenAuth, "resolveZenCredentials").mockResolvedValue({
       authCookie: "Fe26.2**expired-cookie",
       workspaceId: "wrk-test-123",
     });
@@ -96,13 +93,13 @@ describe("queryGoRateLimit", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await queryGoRateLimit();
+    const result = await queryZenUsage();
     expect(result.attempted).toBe(true);
     expect(result.error).toContain("authentication failed");
   });
 
   it("throws on other HTTP errors", async () => {
-    vi.spyOn(goAuth, "resolveGoCredentials").mockResolvedValue({
+    vi.spyOn(zenAuth, "resolveZenCredentials").mockResolvedValue({
       authCookie: "Fe26.2**test-cookie",
       workspaceId: "wrk-test-123",
     });
@@ -113,13 +110,13 @@ describe("queryGoRateLimit", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await queryGoRateLimit();
+    const result = await queryZenUsage();
     expect(result.attempted).toBe(true);
     expect(result.error).toContain("HTTP 500");
   });
 
-  it("throws when no quota data can be parsed", async () => {
-    vi.spyOn(goAuth, "resolveGoCredentials").mockResolvedValue({
+  it("throws when no usage data can be parsed", async () => {
+    vi.spyOn(zenAuth, "resolveZenCredentials").mockResolvedValue({
       authCookie: "Fe26.2**test-cookie",
       workspaceId: "wrk-test-123",
     });
@@ -127,17 +124,17 @@ describe("queryGoRateLimit", () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      text: () => Promise.resolve("<html><body>No quota data here</body></html>"),
+      text: () => Promise.resolve("<html><body>No usage data here</body></html>"),
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await queryGoRateLimit();
+    const result = await queryZenUsage();
     expect(result.attempted).toBe(true);
-    expect(result.error).toContain("Could not parse quota data");
+    expect(result.error).toContain("Could not parse usage data");
   });
 
   it("respects timeoutMs option", async () => {
-    vi.spyOn(goAuth, "resolveGoCredentials").mockResolvedValue({
+    vi.spyOn(zenAuth, "resolveZenCredentials").mockResolvedValue({
       authCookie: "Fe26.2**test-cookie",
       workspaceId: "wrk-test-123",
     });
@@ -151,27 +148,8 @@ describe("queryGoRateLimit", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await queryGoRateLimit({ timeoutMs: 50 });
+    const result = await queryZenUsage({ timeoutMs: 50 });
     expect(result.attempted).toBe(true);
     expect(result.error).toContain("timed out");
-  });
-
-  it("handles decimal usagePercent values", async () => {
-    vi.spyOn(goAuth, "resolveGoCredentials").mockResolvedValue({
-      authCookie: "Fe26.2**test-cookie",
-      workspaceId: "wrk-test-123",
-    });
-
-    const htmlWithDecimals = `rollingUsage:$R[0]={usagePercent:45.7,resetInSec:2520.5}`;
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      text: () => Promise.resolve(htmlWithDecimals),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const result = await queryGoRateLimit();
-    expect(result.attempted).toBe(true);
-    expect(result.data?.rolling5h).toEqual({ usagePercent: 46, resetInSec: 2521 });
   });
 });

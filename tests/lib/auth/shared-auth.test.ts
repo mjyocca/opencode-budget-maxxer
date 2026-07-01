@@ -1,12 +1,11 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { resolveGoCredentials } from "@/providers/opencode-go/go.auth";
+import { resolveDashboardCredentials, getDashboardSetupInstructions } from "@/lib/auth/shared-auth";
 
-describe("resolveGoCredentials", () => {
+describe("resolveDashboardCredentials", () => {
   let originalEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    // Delete real env vars that may be set in the shell
     delete process.env["OPENCODE_GO_AUTH_COOKIE"];
     delete process.env["OPENCODE_GO_WORKSPACE_ID"];
   });
@@ -21,7 +20,7 @@ describe("resolveGoCredentials", () => {
   it("returns credentials when both env vars are set", async () => {
     process.env["OPENCODE_GO_AUTH_COOKIE"] = "Fe26.2**test-cookie";
     process.env["OPENCODE_GO_WORKSPACE_ID"] = "wrk-test-123";
-    const result = await resolveGoCredentials();
+    const result = await resolveDashboardCredentials();
     expect(result).toEqual({
       authCookie: "Fe26.2**test-cookie",
       workspaceId: "wrk-test-123",
@@ -30,28 +29,37 @@ describe("resolveGoCredentials", () => {
 
   it("returns null when only cookie is set", async () => {
     process.env["OPENCODE_GO_AUTH_COOKIE"] = "Fe26.2**test-cookie";
-    const result = await resolveGoCredentials();
+    const result = await resolveDashboardCredentials();
     expect(result).toBeNull();
   });
 
   it("returns null when only workspace ID is set", async () => {
     process.env["OPENCODE_GO_WORKSPACE_ID"] = "wrk-test-123";
-    const result = await resolveGoCredentials();
+    const result = await resolveDashboardCredentials();
     expect(result).toBeNull();
   });
 
   it("returns null when no credentials found", async () => {
-    const result = await resolveGoCredentials();
+    const result = await resolveDashboardCredentials();
     expect(result).toBeNull();
   });
 
   it("trims whitespace from env vars", async () => {
     process.env["OPENCODE_GO_AUTH_COOKIE"] = "  Fe26.2**test  ";
     process.env["OPENCODE_GO_WORKSPACE_ID"] = "  wrk-test  ";
-    const result = await resolveGoCredentials();
+    const result = await resolveDashboardCredentials();
     expect(result).toEqual({
       authCookie: "Fe26.2**test",
       workspaceId: "wrk-test",
     });
+  });
+});
+
+describe("getDashboardSetupInstructions", () => {
+  it("returns instruction string with env var names", () => {
+    const instructions = getDashboardSetupInstructions();
+    expect(instructions).toContain("OPENCODE_GO_WORKSPACE_ID");
+    expect(instructions).toContain("OPENCODE_GO_AUTH_COOKIE");
+    expect(instructions).toContain("opencode.ai");
   });
 });

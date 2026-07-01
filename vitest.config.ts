@@ -9,6 +9,7 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.{test,spec}.ts"],
+    globalSetup: ["./tests/global-setup.ts"],
   },
   // Tell VSCode's LS to use this tsconfig for test file type resolution
 });

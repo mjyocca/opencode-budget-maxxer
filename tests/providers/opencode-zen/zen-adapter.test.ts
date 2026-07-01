@@ -1,17 +1,16 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { OpenCodeGoAdapter } from "@/providers/opencode-go/go";
+import { OpenCodeZenAdapter } from "@/providers/opencode-zen/zen";
 import type { AdapterContext } from "@/lib/adapter/types";
 
-describe("OpenCodeGoAdapter", () => {
-  let adapter: OpenCodeGoAdapter;
+describe("OpenCodeZenAdapter", () => {
+  let adapter: OpenCodeZenAdapter;
   let originalEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    // Delete real env vars that may be set in the shell
     delete process.env["OPENCODE_GO_AUTH_COOKIE"];
     delete process.env["OPENCODE_GO_WORKSPACE_ID"];
-    adapter = new OpenCodeGoAdapter();
+    adapter = new OpenCodeZenAdapter();
   });
 
   afterEach(() => {
@@ -22,12 +21,12 @@ describe("OpenCodeGoAdapter", () => {
     vi.restoreAllMocks();
   });
 
-  it("id is 'opencode-go'", () => {
-    expect(adapter.id).toBe("opencode-go");
+  it("id is 'opencode'", () => {
+    expect(adapter.id).toBe("opencode");
   });
 
-  it("displayName is 'OpenCode Go'", () => {
-    expect(adapter.displayName).toBe("OpenCode Go");
+  it("displayName is 'OpenCode Zen'", () => {
+    expect(adapter.displayName).toBe("OpenCode Zen");
   });
 
   it("loadAuth returns empty object when no credentials", async () => {
@@ -42,11 +41,11 @@ describe("OpenCodeGoAdapter", () => {
     const ctx: AdapterContext = { plugin: {} as any };
     const auth = await adapter.loadAuth(ctx);
     expect(auth.apiKey).toBe("Fe26.2**test-cookie");
-    expect(auth.baseURL).toBe("https://opencode.ai/workspace/wrk-test-123/go");
+    expect(auth.baseURL).toBe("https://opencode.ai/workspace/wrk-test-123/zen");
   });
 
-  it("fetchProviderApi('/rate-limit') delegates to queryGoRateLimit", async () => {
-    const result = await adapter.fetchProviderApi("/rate-limit");
+  it("fetchProviderApi('/usage') delegates to queryZenUsage", async () => {
+    const result = await adapter.fetchProviderApi("/usage");
     expect(result.attempted).toBe(false);
   });
 
