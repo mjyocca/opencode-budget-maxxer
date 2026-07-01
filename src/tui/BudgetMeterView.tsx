@@ -34,11 +34,20 @@ function getBarColor(percentUsed: number, theme: any): string {
   return theme.error ?? theme.text;
 }
 
-export function BudgetMeterView(props: { api: TuiPluginApi; sessionID?: string }) {
+export function BudgetMeterView(props: {
+  api: TuiPluginApi;
+  sessionID?: string;
+}) {
   const theme = () => props.api.theme.current;
-  const [expanded, setExpanded] = createSignal(props.api.kv?.get("budget-expanded", false) ?? false);
-  const [goEntry, setGoEntry] = createSignal<{ data: Record<string, unknown> } | null>(null);
-  const [zenEntry, setZenEntry] = createSignal<{ data: Record<string, unknown> } | null>(null);
+  const [expanded, setExpanded] = createSignal(
+    props.api.kv?.get("budget-expanded", false) ?? false,
+  );
+  const [goEntry, setGoEntry] = createSignal<{
+    data: Record<string, unknown>;
+  } | null>(null);
+  const [zenEntry, setZenEntry] = createSignal<{
+    data: Record<string, unknown>;
+  } | null>(null);
   const [activeProvider, setActiveProvider] = createSignal<string | null>(null);
 
   async function refresh() {
@@ -91,13 +100,22 @@ export function BudgetMeterView(props: { api: TuiPluginApi; sessionID?: string }
   const goData = () => {
     const d = goEntry()?.data;
     if (!d) return null;
-    return d as { rolling5h: { usagePercent: number; resetInSec: number } | null; weekly: { usagePercent: number; resetInSec: number } | null; monthly: { usagePercent: number; resetInSec: number } | null };
+    return d as {
+      rolling5h: { usagePercent: number; resetInSec: number } | null;
+      weekly: { usagePercent: number; resetInSec: number } | null;
+      monthly: { usagePercent: number; resetInSec: number } | null;
+    };
   };
 
   const zenData = () => {
     const d = zenEntry()?.data;
     if (!d) return null;
-    return d as { balance: number; monthlySpending: number; monthlyLimit: number | null; autoReload: boolean };
+    return d as {
+      balance: number;
+      monthlySpending: number;
+      monthlyLimit: number | null;
+      autoReload: boolean;
+    };
   };
 
   const rolling5h = () => goData()?.rolling5h;
@@ -115,17 +133,16 @@ export function BudgetMeterView(props: { api: TuiPluginApi; sessionID?: string }
 
   const hasData = () => goData() !== null || zenData() !== null;
 
-  const goLabel = () => {
-    const isActive = activeProvider() === "opencode-go";
-    return isActive ? "Opencode Go (Active)" : "Opencode Go";
-  };
+  const goLabel = () => "Opencode Go";
 
-  const zenLabel = () => {
-    const isActive = activeProvider() === "opencode";
-    return isActive ? "Opencode Zen (Active)" : "Opencode Zen";
-  };
+  const zenLabel = () => "Opencode Zen";
 
   const goLabelColor = () => {
+    if (activeProvider() === "opencode-go") return theme().text;
+    return theme().textMuted;
+  };
+
+  const goValueColor = () => {
     if (activeProvider() === "opencode-go") return theme().text;
     return theme().textMuted;
   };
@@ -135,96 +152,112 @@ export function BudgetMeterView(props: { api: TuiPluginApi; sessionID?: string }
     return theme().textMuted;
   };
 
+  const zenValueColor = () => {
+    if (activeProvider() === "opencode") return theme().text;
+    return theme().textMuted;
+  };
+
   // Debug log
   props.api.client?.app?.log?.({
-    service: "budget-maxxer-tui", level: "debug",
+    service: "budget-maxxer-tui",
+    level: "debug",
     message: `render: hasGo=${!!goData()}, hasZen=${!!zenData()}, active=${activeProvider() ?? "none"}`,
   });
 
   return (
-    <box padding={1}>
+    <box>
       <text attributes={TextAttributes.BOLD} fg={theme().text}>
         Budget Maxxer
       </text>
       <Show when={hasData()}>
         {/* Go section */}
-        <Show when={goData()}>
-          <text fg={goLabelColor()}>{"\n"}{goLabel()}</text>
+        <Show when={goData() && activeProvider() === "opencode-go"}>
+          <text attributes={TextAttributes.DIM} fg={goLabelColor()}>
+            {goLabel()}
+          </text>
           <Show when={rolling5h()}>
-            <text fg={getBarColor(safePercent(rolling5h()?.usagePercent), theme)}>
-              {" "}
+            <text attributes={TextAttributes.BOLD} fg={goValueColor()}>
+              {"\n"}
+              Daily
+            </text>
+            <text
+              fg={getBarColor(safePercent(rolling5h()?.usagePercent), theme)}
+            >
               {goBar(rolling5h()?.usagePercent)}
             </text>
-            <text fg={theme().text}>
-              {" "}
+            <text fg={goValueColor()}>
               {safePercent(rolling5h()?.usagePercent)}%
             </text>
-            <text fg={theme().textMuted}>
-              {" "}
-              5h:{formatDuration(rolling5h()!.resetInSec)}
+            <text fg={goValueColor()}>
+              {formatDuration(rolling5h()!.resetInSec)}
             </text>
           </Show>
           <Show when={weekly()}>
-            <text fg={theme().textMuted}>{"\n"}</text>
+            <text attributes={TextAttributes.BOLD} fg={goValueColor()}>
+              {"\n"}
+              Weekly
+            </text>
             <text fg={getBarColor(safePercent(weekly()?.usagePercent), theme)}>
-              {" "}
               {goBar(weekly()?.usagePercent)}
             </text>
-            <text fg={theme().text}>
-              {" "}
+            <text fg={goValueColor()}>
               {safePercent(weekly()?.usagePercent)}%
             </text>
-            <text fg={theme().textMuted}>
-              {" "}
-              wk:{formatDuration(weekly()!.resetInSec)}
+            <text fg={goValueColor()}>
+              {formatDuration(weekly()!.resetInSec)}
             </text>
           </Show>
           <Show when={monthly()}>
-            <text fg={theme().textMuted}>{"\n"}</text>
+            <text attributes={TextAttributes.BOLD} fg={goValueColor()}>
+              {"\n"}
+              Monthly
+            </text>
             <text fg={getBarColor(safePercent(monthly()?.usagePercent), theme)}>
-              {" "}
               {goBar(monthly()?.usagePercent)}
             </text>
-            <text fg={theme().text}>
-              {" "}
+            <text fg={goValueColor()}>
               {safePercent(monthly()?.usagePercent)}%
             </text>
-            <text fg={theme().textMuted}>
-              {" "}
-              mo:{formatDuration(monthly()!.resetInSec)}
+            <text fg={goValueColor()}>
+              {formatDuration(monthly()!.resetInSec)}
             </text>
           </Show>
         </Show>
 
         {/* Zen section */}
-        <Show when={zenData()}>
-          <text fg={zenLabelColor()}>{"\n"}{zenLabel()}</text>
-          <text fg={theme().text}>
-            {" "}
-            ${zenData()!.balance.toFixed(2)} balance
+        <Show when={zenData() && activeProvider() === "opencode"}>
+          <text attributes={TextAttributes.DIM} fg={zenLabelColor()}>
+            {zenLabel()}
           </text>
+          <text attributes={TextAttributes.BOLD} fg={zenValueColor()}>
+            {"\n"}
+            Current Balance{" "}
+          </text>
+          <text fg={zenValueColor()}>${zenData()!.balance.toFixed(2)}</text>
           <Show when={zenData()!.monthlyLimit}>
+            <text attributes={TextAttributes.BOLD} fg={zenValueColor()}>
+              {"\n"}
+              Monthly Limit{" "}
+            </text>
+            <text fg={zenValueColor()}>
+              ${zenData()!.monthlySpending.toFixed(2)}/$
+              {zenData()!.monthlyLimit!.toFixed(2)}
+            </text>
             <text fg={theme().textMuted}>{"\n"}</text>
             <text fg={getBarColor(safePercent(spendingPercent()), theme)}>
-              {" "}
               {buildBar(spendingPercent())}
             </text>
-            <text fg={theme().text}>
-              {" "}
-              {spendingPercent()}%
-            </text>
-            <text fg={theme().textMuted}>
-              {" "}
-              ${zenData()!.monthlySpending.toFixed(0)}/${zenData()!.monthlyLimit!.toFixed(0)}
-            </text>
+            <text fg={zenValueColor()}>{spendingPercent()}%</text>
           </Show>
           <Show when={zenData()!.autoReload}>
-            <text fg={theme().textMuted}>{"\n"}  auto-reload</text>
+            <text fg={theme().textMuted}>{"\n"} auto-reload</text>
           </Show>
         </Show>
       </Show>
       <Show when={!hasData()}>
-        <text fg={theme().textMuted}>{"\n"}No data — run /setup_go or /setup_zen</text>
+        <text fg={theme().textMuted}>
+          {"\n"}No data — run /setup_go or /setup_zen
+        </text>
       </Show>
     </box>
   );
