@@ -76,4 +76,26 @@ describe("cache", () => {
     expect(zenEntry!.data.balance).toBe(20);
     expect(zenEntry!.data.monthlySpending).toBe(5);
   });
+
+  it("setActiveProvider writes active provider to cache", async () => {
+    const { readCache, setActiveProvider } = await import("@/lib/budget/cache");
+    setActiveProvider("opencode-go");
+
+    const result = readCache();
+    expect(result).not.toBeNull();
+    expect(result!.activeProvider).toBe("opencode-go");
+  });
+
+  it("setActiveProvider preserves existing entries", async () => {
+    const { readCache, writeCache, mergeQuotaCache, setActiveProvider } = await import("@/lib/budget/cache");
+
+    mergeQuotaCache("opencode-go", { rolling5h: { usagePercent: 45 } });
+    mergeQuotaCache("opencode", { balance: 15 });
+    setActiveProvider("opencode");
+
+    const result = readCache();
+    expect(result).not.toBeNull();
+    expect(result!.activeProvider).toBe("opencode");
+    expect(result!.entries).toHaveLength(2);
+  });
 });

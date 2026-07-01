@@ -20,6 +20,7 @@ export interface CacheEntry {
 
 export interface CacheData {
   entries: CacheEntry[];
+  activeProvider?: string;
   updatedAt: number;
 }
 
@@ -77,5 +78,18 @@ export function mergeQuotaCache(provider: string, data: Record<string, unknown>)
   } else {
     entries.push(entry);
   }
-  writeCache({ entries, updatedAt: Date.now() });
+  writeCache({ entries, activeProvider: cache?.activeProvider, updatedAt: Date.now() });
+}
+
+/**
+ * Set the active provider in the cache.
+ * Used by chat.headers hook to track which provider is currently in use.
+ */
+export function setActiveProvider(provider: string): void {
+  const cache = readCache();
+  writeCache({
+    entries: cache?.entries ?? [],
+    activeProvider: provider,
+    updatedAt: Date.now(),
+  });
 }

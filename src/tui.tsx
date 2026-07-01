@@ -40,7 +40,7 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
   api.slots.register({
     order: SIDEBAR_ORDER,
     slots: {
-      sidebar_content: () => <BudgetMeterView api={api} />,
+      sidebar_content: (_ctx, props) => <BudgetMeterView api={api} sessionID={props.session_id} />,
     },
   });
 

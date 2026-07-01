@@ -34,21 +34,45 @@ function getBarColor(percentUsed: number, theme: any): string {
   return theme.error ?? theme.text;
 }
 
-export function BudgetMeterView(props: { api: TuiPluginApi }) {
+export function BudgetMeterView(props: { api: TuiPluginApi; sessionID?: string }) {
   const theme = () => props.api.theme.current;
   const [expanded, setExpanded] = createSignal(props.api.kv?.get("budget-expanded", false) ?? false);
   const [goEntry, setGoEntry] = createSignal<{ data: Record<string, unknown> } | null>(null);
   const [zenEntry, setZenEntry] = createSignal<{ data: Record<string, unknown> } | null>(null);
+  const [activeProvider, setActiveProvider] = createSignal<string | null>(null);
 
-  function refresh() {
+  async function refresh() {
     const cache = readCache();
     if (!cache) {
       setGoEntry(null);
       setZenEntry(null);
+      setActiveProvider(null);
       return;
     }
     setGoEntry(cache.entries.find((e) => e.provider === "opencode-go") ?? null);
     setZenEntry(cache.entries.find((e) => e.provider === "opencode") ?? null);
+
+    let provider = cache.activeProvider ?? null;
+
+    if (!provider && props.sessionID) {
+      try {
+        const msgs = await props.api.client?.session?.messages?.({
+          sessionID: props.sessionID,
+        });
+        const msgList = msgs?.data ?? [];
+        for (let i = msgList.length - 1; i >= 0; i--) {
+          const msg = msgList[i];
+          if (msg.info?.role === "assistant" && msg.info?.providerID) {
+            provider = msg.info.providerID;
+            break;
+          }
+        }
+      } catch {
+        // fallback failed, leave provider as-is
+      }
+    }
+
+    setActiveProvider(provider);
   }
 
   function toggleExpand() {
@@ -91,10 +115,30 @@ export function BudgetMeterView(props: { api: TuiPluginApi }) {
 
   const hasData = () => goData() !== null || zenData() !== null;
 
+  const goLabel = () => {
+    const isActive = activeProvider() === "opencode-go";
+    return isActive ? "Opencode Go (Active)" : "Opencode Go";
+  };
+
+  const zenLabel = () => {
+    const isActive = activeProvider() === "opencode";
+    return isActive ? "Opencode Zen (Active)" : "Opencode Zen";
+  };
+
+  const goLabelColor = () => {
+    if (activeProvider() === "opencode-go") return theme().text;
+    return theme().textMuted;
+  };
+
+  const zenLabelColor = () => {
+    if (activeProvider() === "opencode") return theme().text;
+    return theme().textMuted;
+  };
+
   // Debug log
   props.api.client?.app?.log?.({
     service: "budget-maxxer-tui", level: "debug",
-    message: `render: hasGo=${!!goData()}, hasZen=${!!zenData()}, hasData=${hasData()}`,
+    message: `render: hasGo=${!!goData()}, hasZen=${!!zenData()}, active=${activeProvider() ?? "none"}`,
   });
 
   return (
@@ -105,7 +149,7 @@ export function BudgetMeterView(props: { api: TuiPluginApi }) {
       <Show when={hasData()}>
         {/* Go section */}
         <Show when={goData()}>
-          <text fg={theme().textMuted}>{"\n"}Go</text>
+          <text fg={goLabelColor()}>{"\n"}{goLabel()}</text>
           <Show when={rolling5h()}>
             <text fg={getBarColor(safePercent(rolling5h()?.usagePercent), theme)}>
               {" "}
@@ -154,7 +198,7 @@ export function BudgetMeterView(props: { api: TuiPluginApi }) {
 
         {/* Zen section */}
         <Show when={zenData()}>
-          <text fg={theme().textMuted}>{"\n"}Zen</text>
+          <text fg={zenLabelColor()}>{"\n"}{zenLabel()}</text>
           <text fg={theme().text}>
             {" "}
             ${zenData()!.balance.toFixed(2)} balance

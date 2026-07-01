@@ -13,6 +13,7 @@ import { Mutex } from "@/lib/core/mutex";
 import { createSdkLogger } from "@/lib/core/logger";
 import type { AdapterRegistry } from "@/lib/adapter/registry";
 import type { AdapterContext } from "@/lib/adapter/types";
+import { setActiveProvider } from "@/lib/budget/cache";
 
 // One mutex per plugin instance — serializes concurrent token refreshes
 // across all adapters registered in the registry.
@@ -36,6 +37,8 @@ export function buildChatHeadersHook(
   return defineHook("chat.headers", async (input, output) => {
     const providerId = input.provider?.info?.id;
     if (!providerId) return;
+
+    setActiveProvider(providerId);
 
     const adapter = registry.get(providerId);
     if (!adapter) return;
