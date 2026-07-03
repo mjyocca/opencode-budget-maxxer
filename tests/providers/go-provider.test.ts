@@ -1,17 +1,16 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { OpenCodeGoAdapter } from "@/providers/opencode-go/go";
-import type { AdapterContext } from "@/lib/adapter/types";
+import { OpencodeGoProvider } from "@/providers/opencode-go/go";
+import type { ProviderContext } from "@/lib/provider/types";
 
-describe("OpenCodeGoAdapter", () => {
-  let adapter: OpenCodeGoAdapter;
+describe("OpencodeGoProvider", () => {
+  let provider: OpencodeGoProvider;
   let originalEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
-    // Delete real env vars that may be set in the shell
     delete process.env["OPENCODE_GO_AUTH_COOKIE"];
     delete process.env["OPENCODE_GO_WORKSPACE_ID"];
-    adapter = new OpenCodeGoAdapter();
+    provider = new OpencodeGoProvider();
   });
 
   afterEach(() => {
@@ -23,36 +22,48 @@ describe("OpenCodeGoAdapter", () => {
   });
 
   it("id is 'opencode-go'", () => {
-    expect(adapter.id).toBe("opencode-go");
+    expect(provider.id).toBe("opencode-go");
   });
 
   it("displayName is 'OpenCode Go'", () => {
-    expect(adapter.displayName).toBe("OpenCode Go");
+    expect(provider.displayName).toBe("OpenCode Go");
   });
 
   it("loadAuth returns empty object when no credentials", async () => {
-    const ctx: AdapterContext = { plugin: {} as any };
-    const auth = await adapter.loadAuth(ctx);
+    const ctx: ProviderContext = { plugin: {} as any };
+    const auth = await provider.loadAuth(ctx);
     expect(auth).toEqual({});
   });
 
   it("loadAuth returns apiKey and baseURL when credentials found", async () => {
     process.env["OPENCODE_GO_AUTH_COOKIE"] = "Fe26.2**test-cookie";
     process.env["OPENCODE_GO_WORKSPACE_ID"] = "wrk-test-123";
-    const ctx: AdapterContext = { plugin: {} as any };
-    const auth = await adapter.loadAuth(ctx);
+    const ctx: ProviderContext = { plugin: {} as any };
+    const auth = await provider.loadAuth(ctx);
     expect(auth.apiKey).toBe("Fe26.2**test-cookie");
     expect(auth.baseURL).toBe("https://opencode.ai/workspace/wrk-test-123/go");
   });
 
   it("fetchProviderApi('/rate-limit') delegates to queryGoRateLimit", async () => {
-    const result = await adapter.fetchProviderApi("/rate-limit");
+    const result = await provider.fetchProviderApi("/rate-limit");
     expect(result.attempted).toBe(false);
   });
 
   it("fetchProviderApi unknown path returns not attempted", async () => {
-    const result = await adapter.fetchProviderApi("/unknown");
+    const result = await provider.fetchProviderApi("/unknown");
     expect(result.attempted).toBe(false);
     expect(result.error).toBe("Unknown path: /unknown");
+  });
+
+  it("isConfigured returns false when no credentials", async () => {
+    const configured = await provider.isConfigured();
+    expect(configured).toBe(false);
+  });
+
+  it("isConfigured returns true when credentials found", async () => {
+    process.env["OPENCODE_GO_AUTH_COOKIE"] = "Fe26.2**test-cookie";
+    process.env["OPENCODE_GO_WORKSPACE_ID"] = "wrk-test-123";
+    const configured = await provider.isConfigured();
+    expect(configured).toBe(true);
   });
 });

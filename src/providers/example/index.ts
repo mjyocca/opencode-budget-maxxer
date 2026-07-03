@@ -1,1 +1,0 @@
-export { ExampleAdapter } from "./example";

@@ -1,22 +1,30 @@
 import type {
-  OpenCodeAdapter,
-  AdapterContext,
-  AdapterAuth,
-} from "@/lib/adapter/types";
-import type {
-  ProviderClient,
+  Provider,
+  ProviderContext,
+  ProviderAuth,
   ProviderResult,
   ProviderRequestOptions,
 } from "@/lib/provider/types";
 import { resolveCopilotToken } from "./copilot.auth";
-import { queryCopilotRateLimit } from "./copilot.api";
-import type { CopilotRateLimit } from "./copilot.types";
+import { queryCopilotUsage } from "./copilot.api";
+import type { CopilotUsage } from "./copilot.types";
+import { mergeQuotaCache } from "@/budget-cache";
+import { createSdkLogger } from "@/lib/core/logger";
 
-export class CopilotAdapter implements OpenCodeAdapter, ProviderClient {
+const POLL_INTERVAL_MS = 15_000;
+
+export class CopilotProvider implements Provider {
   readonly id = "copilot";
   readonly displayName = "GitHub Copilot";
 
-  async loadAuth(_ctx: AdapterContext): Promise<AdapterAuth> {
+  private interval: ReturnType<typeof setInterval> | null = null;
+
+  async isConfigured(): Promise<boolean> {
+    const token = await resolveCopilotToken();
+    return token !== null;
+  }
+
+  async loadAuth(_ctx: ProviderContext): Promise<ProviderAuth> {
     const token = await resolveCopilotToken();
     if (!token) return {};
     return {
@@ -29,28 +37,48 @@ export class CopilotAdapter implements OpenCodeAdapter, ProviderClient {
     };
   }
 
-  async prepareRequest(
-    _input: Record<string, unknown>,
-    output: Record<string, unknown>,
-  ): Promise<void> {
-    const token = await resolveCopilotToken();
-    if (!token) return;
-    const options = (output.options as Record<string, unknown>) ?? {};
-    output.options = options;
-    const headers = (options.headers as Record<string, string>) ?? {};
-    options.headers = headers;
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   async fetchProviderApi<T>(
     path: string,
     opts?: ProviderRequestOptions,
   ): Promise<ProviderResult<T>> {
-    if (path === "/rate-limit") {
-      return queryCopilotRateLimit({
+    if (path === "/usage") {
+      return queryCopilotUsage({
         timeoutMs: opts?.timeoutMs,
       }) as Promise<ProviderResult<T>>;
     }
     return { attempted: false, data: null, error: `Unknown path: ${path}` };
+  }
+
+  async startup(ctx: ProviderContext): Promise<void> {
+    const logger = createSdkLogger(ctx.plugin.client, "copilot-provider");
+
+    const poll = async () => {
+      const result = await this.fetchProviderApi<CopilotUsage>("/usage");
+      if (result.attempted && result.data) {
+        mergeQuotaCache("copilot", result.data as unknown as Record<string, unknown>);
+        await logger.debug(`Copilot usage cached: ${JSON.stringify(result.data)}`);
+      }
+    };
+
+    poll();
+    this.interval = setInterval(poll, POLL_INTERVAL_MS);
+  }
+
+  async cleanup(): Promise<void> {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+
+  async inspect(_ctx: ProviderContext): Promise<Record<string, unknown>> {
+    const token = await resolveCopilotToken();
+    const result = await this.fetchProviderApi("/usage");
+    return {
+      auth: {
+        token: token ? "set (masked)" : "not set",
+      },
+      usage: result,
+    };
   }
 }

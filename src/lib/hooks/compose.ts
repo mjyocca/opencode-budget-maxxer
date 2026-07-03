@@ -185,7 +185,7 @@ export function composeHooks(
  *
  * Usage:
  *   export const MyPlugin: Plugin = async (ctx) => {
- *     const registry = new AdapterRegistry().register(new CopilotAdapter(ctx));
+ *     const registry = new ProviderRegistry().register(new CopilotProvider(ctx));
  *
  *     return composePlugin({
  *       auth: {

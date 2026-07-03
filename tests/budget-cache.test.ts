@@ -6,7 +6,7 @@ vi.mock("@/lib/core/runtime-paths", () => ({
   getOpencodeRuntimeDirs: vi.fn(),
 }));
 
-describe("cache", () => {
+describe("budget-cache", () => {
   let testDir: string;
 
   beforeEach(() => {
@@ -24,13 +24,13 @@ describe("cache", () => {
   });
 
   it("returns null when cache file doesn't exist", async () => {
-    const { readCache } = await import("@/lib/budget/cache");
+    const { readCache } = await import("@/budget-cache");
     const result = readCache();
     expect(result).toBeNull();
   });
 
   it("writes and reads cache data", async () => {
-    const { readCache, writeCache } = await import("@/lib/budget/cache");
+    const { readCache, writeCache } = await import("@/budget-cache");
     const entries = [
       { provider: "opencode-go", timestamp: 123, data: { foo: "bar" } },
     ];
@@ -44,7 +44,7 @@ describe("cache", () => {
   });
 
   it("mergeQuotaCache adds new provider entry", async () => {
-    const { readCache, mergeQuotaCache } = await import("@/lib/budget/cache");
+    const { readCache, mergeQuotaCache } = await import("@/budget-cache");
     mergeQuotaCache("opencode", { balance: 15.20 });
 
     const result = readCache();
@@ -55,7 +55,7 @@ describe("cache", () => {
   });
 
   it("mergeQuotaCache updates existing provider without overwriting others", async () => {
-    const { readCache, writeCache, mergeQuotaCache } = await import("@/lib/budget/cache");
+    const { readCache, writeCache, mergeQuotaCache } = await import("@/budget-cache");
 
     writeCache({
       entries: [
@@ -78,7 +78,7 @@ describe("cache", () => {
   });
 
   it("setActiveProvider writes active provider to cache", async () => {
-    const { readCache, setActiveProvider } = await import("@/lib/budget/cache");
+    const { readCache, setActiveProvider } = await import("@/budget-cache");
     setActiveProvider("opencode-go");
 
     const result = readCache();
@@ -87,7 +87,7 @@ describe("cache", () => {
   });
 
   it("setActiveProvider preserves existing entries", async () => {
-    const { readCache, writeCache, mergeQuotaCache, setActiveProvider } = await import("@/lib/budget/cache");
+    const { readCache, writeCache, mergeQuotaCache, setActiveProvider } = await import("@/budget-cache");
 
     mergeQuotaCache("opencode-go", { rolling5h: { usagePercent: 45 } });
     mergeQuotaCache("opencode", { balance: 15 });

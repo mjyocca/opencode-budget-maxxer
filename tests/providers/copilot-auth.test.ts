@@ -11,6 +11,9 @@ describe("resolveCopilotToken", () => {
 
   beforeEach(() => {
     originalEnv = { ...process.env };
+    delete process.env["GITHUB_TOKEN"];
+    delete process.env["COPILOT_TOKEN"];
+    clearAuthFileCache();
   });
 
   afterEach(() => {
@@ -18,6 +21,7 @@ describe("resolveCopilotToken", () => {
       delete process.env[key];
     }
     Object.assign(process.env, originalEnv);
+    clearAuthFileCache();
   });
 
   it("returns GITHUB_TOKEN when set", async () => {
