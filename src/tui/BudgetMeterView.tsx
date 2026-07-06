@@ -3,7 +3,7 @@
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import { TextAttributes } from "@opentui/core";
 import { Show, createSignal, createEffect, onCleanup } from "solid-js";
-import { readCache } from "@/cache";
+import { readCache, getSessionState } from "@/cache";
 import {
   renderGoSidebar,
   renderZenSidebar,
@@ -43,7 +43,12 @@ export function BudgetMeterView(props: {
     setZenData((zenEntry?.data as unknown as ZenUsage) ?? null);
     setCopilotData((copilotEntry?.data as unknown as CopilotUsage) ?? null);
 
-    let provider = cache.activeProvider ?? null;
+    let provider: string | null = null;
+
+    if (props.sessionID) {
+      const sessionState = await getSessionState(props.sessionID);
+      provider = sessionState?.overrideProvider ?? sessionState?.activeProvider ?? null;
+    }
 
     if (!provider && props.sessionID) {
       try {

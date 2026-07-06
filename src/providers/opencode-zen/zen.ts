@@ -74,7 +74,7 @@ export class OpencodeZenProvider implements Provider {
     const poll = async () => {
       const result = await this.fetchProviderApi<ZenUsage>("/usage");
       if (result.attempted && result.data) {
-        mergeQuotaCache(
+        await mergeQuotaCache(
           "opencode",
           result.data as unknown as Record<string, unknown>,
         );

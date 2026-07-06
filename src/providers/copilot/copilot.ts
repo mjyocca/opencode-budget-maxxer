@@ -55,7 +55,7 @@ export class CopilotProvider implements Provider {
     const poll = async () => {
       const result = await this.fetchProviderApi<CopilotUsage>("/usage");
       if (result.attempted && result.data) {
-        mergeQuotaCache(
+        await mergeQuotaCache(
           "copilot",
           result.data as unknown as Record<string, unknown>,
         );

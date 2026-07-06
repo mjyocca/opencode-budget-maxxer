@@ -74,7 +74,7 @@ export class OpencodeGoProvider implements Provider {
     const poll = async () => {
       const result = await this.fetchProviderApi<GoRateLimit>("/rate-limit");
       if (result.attempted && result.data) {
-        mergeQuotaCache(
+        await mergeQuotaCache(
           "opencode-go",
           result.data as unknown as Record<string, unknown>,
         );

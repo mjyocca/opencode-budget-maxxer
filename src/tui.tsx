@@ -13,7 +13,7 @@ import {
   BudgetMeterView,
   SessionPromptAugmentedView,
 } from "@/tui/index.js";
-import { setActiveProvider } from "@/cache";
+import { setSessionOverrideProvider } from "@/cache";
 import { PROVIDERS, createTuiRegistry } from "@/providers";
 
 const SIDEBAR_ORDER = 300;
@@ -35,6 +35,11 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
   const interval = setInterval(refreshStatus, REFRESH_INTERVAL_MS);
   const unsubEvent = api.event.on("session.idle", () => {
     refreshStatus();
+  });
+
+  let currentSessionID: string | null = null;
+  const unsubSession = api.event.on("tui.session.select", (event: any) => {
+    currentSessionID = event.properties.sessionID;
   });
 
   logger.info("TUI plugin initialized — slots registered");
@@ -85,7 +90,7 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
           desc: "Switch active provider",
           category: "Budget Maxxer",
           slashName: "budget:show",
-          run(input?: unknown) {
+          async run(input?: unknown) {
             const arg = typeof input === "string" ? input.trim() : "";
             if (!arg) {
               const DialogSelect = (api as any).ui?.DialogSelect;
@@ -96,25 +101,66 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
                 });
                 return;
               }
+              const options = [
+                {
+                  title: "Auto (follow model)",
+                  value: "__auto__",
+                  description: "Follow the active model",
+                },
+                ...PROVIDERS.map((p) => ({
+                  title: p.label,
+                  value: p.id,
+                  description: `id: ${p.id}`,
+                })),
+              ];
               api.ui.dialog?.replace?.(() => (
                 <DialogSelect
                   title="Select Provider"
-                  options={PROVIDERS.map((p) => ({
-                    title: p.label,
-                    value: p.id,
-                    description: `id: ${p.id}`,
-                  }))}
-                  onSelect={(option: any) => {
-                    setActiveProvider(option.value);
+                  options={options}
+                  onSelect={async (option: any) => {
+                    if (!currentSessionID) {
+                      api.ui.toast?.({
+                        message: "No active session",
+                        variant: "warning",
+                      });
+                      return;
+                    }
+                    if (option.value === "__auto__") {
+                      await setSessionOverrideProvider(currentSessionID, null);
+                      api.ui.toast?.({
+                        message: "Now following active model",
+                        variant: "info",
+                      });
+                    } else {
+                      await setSessionOverrideProvider(
+                        currentSessionID,
+                        option.value,
+                      );
+                      api.ui.toast?.({
+                        message: `Now showing ${option.title}`,
+                        variant: "info",
+                      });
+                    }
                     api.ui.dialog?.clear?.();
-                    api.ui.toast?.({
-                      message: `Now showing ${option.title}`,
-                      variant: "info",
-                    });
                   }}
                 />
               ));
               api.ui.dialog?.setSize?.("medium");
+              return;
+            }
+            if (arg === "auto" || arg === "__auto__") {
+              if (!currentSessionID) {
+                api.ui.toast?.({
+                  message: "No active session",
+                  variant: "warning",
+                });
+                return;
+              }
+              await setSessionOverrideProvider(currentSessionID, null);
+              api.ui.toast?.({
+                message: "Now following active model",
+                variant: "info",
+              });
               return;
             }
             const match = PROVIDERS.find(
@@ -127,7 +173,14 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
               });
               return;
             }
-            setActiveProvider(match.id);
+            if (!currentSessionID) {
+              api.ui.toast?.({
+                message: "No active session",
+                variant: "warning",
+              });
+              return;
+            }
+            await setSessionOverrideProvider(currentSessionID, match.id);
             api.ui.toast?.({
               message: `Now showing ${match.label}`,
               variant: "info",
@@ -147,6 +200,7 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
     logger.info("TUI plugin disposing");
     clearInterval(interval);
     unsubEvent();
+    unsubSession();
   });
 };
 
