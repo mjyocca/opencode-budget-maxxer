@@ -37,7 +37,9 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
     refreshStatus();
   });
 
-  const [currentSessionID, setCurrentSessionID] = createSignal<string | null>(null);
+  const [currentSessionID, setCurrentSessionID] = createSignal<string | null>(
+    null,
+  );
 
   logger.info("TUI plugin initialized — slots registered");
 
@@ -48,29 +50,6 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
         setCurrentSessionID(props.session_id ?? null);
         return <BudgetMeterView api={api} sessionID={props.session_id} />;
       },
-    },
-  });
-
-  api.slots.register({
-    order: COMPACT_ORDER,
-    slots: {
-      home_bottom: () => <HomeBottomView api={api} compactText={compactText} />,
-    },
-  });
-
-  api.slots.register({
-    order: COMPACT_ORDER,
-    slots: {
-      session_prompt: (_ctx, props) => (
-        <SessionPromptAugmentedView
-          api={api}
-          sessionID={props.session_id}
-          visible={props.visible}
-          disabled={props.disabled}
-          onSubmit={props.on_submit}
-          ref={props.ref}
-        />
-      ),
     },
   });
 
@@ -131,10 +110,7 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
                         variant: "info",
                       });
                     } else {
-                      await setSessionOverrideProvider(
-                        sessionID,
-                        option.value,
-                      );
+                      await setSessionOverrideProvider(sessionID, option.value);
                       api.ui.toast?.({
                         message: `Now showing ${option.title}`,
                         variant: "info",
