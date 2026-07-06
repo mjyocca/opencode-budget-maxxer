@@ -1,9 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { getOpencodeRuntimeDirs } from "./lib/core/runtime-paths";
 import { Mutex } from "./lib/core/mutex";
 
-const CACHE_FILE = "budget-maxxer-quota.json";
+const CACHE_FILE = "cache.json";
 
 const cacheMutex = new Mutex();
 
@@ -42,11 +42,20 @@ export function mapProviderID(opencodeID: string | undefined): string | null {
 function getCachePathCandidates(): string[] {
   const { cacheDir } = getOpencodeRuntimeDirs();
   const home = process.env.HOME ?? process.env.USERPROFILE ?? "";
-  const candidates = [cacheDir];
+  
+  // Get the parent directory of opencode's cache dir
+  const baseCacheDir = dirname(cacheDir);
+  
+  // Use our own plugin directory at the same level
+  const pluginCacheDir = join(baseCacheDir, "opencode-budget-maxxer");
+  
+  const candidates = [pluginCacheDir];
+  
+  // Add fallback candidates for macOS
   if (process.platform === "darwin") {
-    candidates.push(join(home, ".cache", "opencode"));
-    candidates.push(join(home, "Library", "Caches", "opencode"));
+    candidates.push(join(home, ".cache", "opencode-budget-maxxer"));
   }
+  
   return candidates;
 }
 

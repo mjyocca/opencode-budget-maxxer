@@ -50,6 +50,8 @@
     "clean": "rm -rf dist",
     "dev:install": "node scripts/dev-tui-install.mjs",
     "dev:uninstall": "node scripts/dev-tui-uninstall.mjs",
+    "plugin:install": "node scripts/install-tui.mjs",
+    "plugin:uninstall": "node scripts/uninstall-tui.mjs",
     "debug": "./scripts/debug.sh",
     "debug:tail": "tail -f opencode-debug.log",
     "prepublishOnly": "pnpm run build:check && pnpm run build",
@@ -63,6 +65,7 @@
     "@opencode-ai/plugin": "latest",
     "@opencode-ai/sdk": "^1.17.8",
     "@types/node": "^22.0.0",
+    "comment-json": "^4.2.7",
     "tsc-alias": "^1.8.17",
     "typescript": "^5.0.0",
     "vitest": "^4.1.9"

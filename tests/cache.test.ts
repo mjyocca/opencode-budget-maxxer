@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import * as runtimePaths from "@/lib/core/runtime-paths";
 import * as fs from "node:fs";
+import { join } from "node:path";
 
 vi.mock("@/lib/core/runtime-paths", () => ({
   getOpencodeRuntimeDirs: vi.fn(),
@@ -11,8 +12,9 @@ describe("budget-cache", () => {
 
   beforeEach(() => {
     testDir = fs.mkdtempSync("/tmp/budget-cache-test-");
+    // Mock cacheDir to point to testDir/opencode so our code creates testDir/opencode-budget-maxxer
     vi.mocked(runtimePaths.getOpencodeRuntimeDirs).mockReturnValue({
-      cacheDir: testDir,
+      cacheDir: join(testDir, "opencode"),
       configDirs: [],
       dataDirs: [],
     });

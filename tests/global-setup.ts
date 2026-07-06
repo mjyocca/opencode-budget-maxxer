@@ -7,7 +7,7 @@ export function setup() {
   mkdirSync(testHome, { recursive: true });
   mkdirSync(join(testHome, ".local", "share", "opencode"), { recursive: true });
   mkdirSync(join(testHome, ".config", "opencode"), { recursive: true });
-  mkdirSync(join(testHome, ".cache", "opencode"), { recursive: true });
+  mkdirSync(join(testHome, ".cache", "opencode-budget-maxxer"), { recursive: true });
   mkdirSync(join(testHome, ".local", "state", "opencode"), { recursive: true });
   writeFileSync(join(testHome, ".local", "share", "opencode", "auth.json"), "{}");
   process.env.OPENCODE_TEST_HOME = testHome;
