@@ -13,14 +13,23 @@ Surface provider usage limits and quota data for OpenCode and GitHub Copilot bac
 
 ## Demo
 
-### OpenCode Go
-![OpenCode Go budget meter](docs/images/demo-opencode-go.png)
+<p align="center">
+  <img src="docs/images/demo-opencode-go.png" alt="OpenCode Go budget meter" width="500" />
+  <br />
+  <em>OpenCode Go</em>
+</p>
 
-### OpenCode Zen
-![OpenCode Zen budget meter](docs/images/demo-opencode-zen.png)
+<p align="center">
+  <img src="docs/images/demo-opencode-zen.png" alt="OpenCode Zen budget meter" width="500" />
+  <br />
+  <em>OpenCode Zen</em>
+</p>
 
-### GitHub Copilot
-![GitHub Copilot budget meter](docs/images/demo-copilot.png)
+<p align="center">
+  <img src="docs/images/demo-copilot.png" alt="GitHub Copilot budget meter" width="500" />
+  <br />
+  <em>GitHub Copilot</em>
+</p>
 
 ## Getting Started
 
