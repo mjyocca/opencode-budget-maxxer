@@ -22,6 +22,11 @@ function getConfigDir() {
     return process.env.OPENCODE_CONFIG_DIR
   }
   
+  // Check for XDG_CONFIG_HOME (works on all platforms)
+  if (process.env.XDG_CONFIG_HOME) {
+    return `${process.env.XDG_CONFIG_HOME}/opencode`
+  }
+  
   const home = process.env.HOME || process.env.USERPROFILE || ''
   if (!home) {
     console.error('❌ Cannot detect HOME directory.')
@@ -40,9 +45,6 @@ function getConfigDir() {
       : `${home}/.config/opencode`
   } else {
     // Linux and others
-    if (process.env.XDG_CONFIG_HOME) {
-      return `${process.env.XDG_CONFIG_HOME}/opencode`
-    }
     return `${home}/.config/opencode`
   }
 }

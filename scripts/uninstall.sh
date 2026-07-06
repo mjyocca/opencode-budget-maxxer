@@ -40,18 +40,21 @@ get_config_dir() {
         return
     fi
     
+    # Check for XDG_CONFIG_HOME (works on all platforms)
+    if [ -n "$XDG_CONFIG_HOME" ]; then
+        echo "$XDG_CONFIG_HOME/opencode"
+        return
+    fi
+    
+    # Platform-specific defaults
     case "$(uname -s)" in
         Darwin)
             # macOS
             echo "$HOME/Library/Application Support/opencode"
             ;;
         Linux)
-            # Linux - check XDG_CONFIG_HOME first
-            if [ -n "$XDG_CONFIG_HOME" ]; then
-                echo "$XDG_CONFIG_HOME/opencode"
-            else
-                echo "$HOME/.config/opencode"
-            fi
+            # Linux
+            echo "$HOME/.config/opencode"
             ;;
         MINGW*|MSYS*|CYGWIN*)
             # Windows (Git Bash, MSYS2, Cygwin)
@@ -62,12 +65,8 @@ get_config_dir() {
             fi
             ;;
         *)
-            # Fallback to XDG
-            if [ -n "$XDG_CONFIG_HOME" ]; then
-                echo "$XDG_CONFIG_HOME/opencode"
-            else
-                echo "$HOME/.config/opencode"
-            fi
+            # Fallback
+            echo "$HOME/.config/opencode"
             ;;
     esac
 }
