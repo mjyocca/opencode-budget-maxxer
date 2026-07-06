@@ -84,7 +84,7 @@ function getDarwinDataDirs(): string[] {
 }
 
 function getDarwinCacheDirs(): string[] {
-  return [join(getUserHome(), "Library", "Caches", APP_NAME)];
+  return [join(getUserHome(), "Library", "Caches", APP_NAME), join(getUserHome(), ".cache", APP_NAME)];
 }
 
 function getDarwinStateDirs(): string[] {
@@ -128,6 +128,10 @@ function getRuntimeConfigDirs(): string[] {
     return (_configDirsCache = [expandTilde(process.env.OPENCODE_CONFIG_DIR)]);
   }
 
+  if (process.env.XDG_CONFIG_HOME) {
+    return (_configDirsCache = [getConfigAppDir(process.env.XDG_CONFIG_HOME)]);
+  }
+
   if (process.platform === "darwin") {
     return (_configDirsCache = getDarwinConfigDirs());
   }
@@ -141,6 +145,10 @@ function getRuntimeConfigDirs(): string[] {
 
 function getRuntimeDataDirs(): string[] {
   if (_dataDirsCache) return _dataDirsCache;
+
+  if (process.env.XDG_DATA_HOME) {
+    return (_dataDirsCache = [getConfigAppDir(process.env.XDG_DATA_HOME)]);
+  }
 
   if (process.platform === "darwin") {
     return (_dataDirsCache = getDarwinDataDirs());
@@ -158,6 +166,10 @@ function getRuntimeDataDirs(): string[] {
 function getRuntimeCacheDirs(): string[] {
   if (_cacheDirsCache) return _cacheDirsCache;
 
+  if (process.env.XDG_CACHE_HOME) {
+    return (_cacheDirsCache = [getConfigAppDir(process.env.XDG_CACHE_HOME)]);
+  }
+
   if (process.platform === "darwin")
     return (_cacheDirsCache = getDarwinCacheDirs());
 
@@ -171,6 +183,10 @@ function getRuntimeCacheDirs(): string[] {
 
 function getRuntimeStateDirs(): string[] {
   if (_stateDirsCache) return _stateDirsCache;
+
+  if (process.env.XDG_STATE_HOME) {
+    return (_stateDirsCache = [getConfigAppDir(process.env.XDG_STATE_HOME)]);
+  }
 
   if (process.platform === "darwin")
     return (_stateDirsCache = getDarwinStateDirs());

@@ -18,8 +18,8 @@ export interface ProviderAuthEntry {
 }
 
 /**
- * Resolved credential for use in adapter.loadAuth().
- * Source tells the adapter where the credential came from for logging.
+ * Resolved credential for use in provider.loadAuth().
+ * Source tells the provider where the credential came from for logging.
  */
 export interface ProviderCredential {
   value: string;
