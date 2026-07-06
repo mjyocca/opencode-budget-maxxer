@@ -11,6 +11,17 @@ Surface provider usage limits and quota data for OpenCode and GitHub Copilot bac
 - **TUI sidebar meter** — Visual budget meter with provider name, usage bar, and reset time
 - **Three built-in providers** — Go, Zen, and Copilot with auth resolution and API polling
 
+## Demo
+
+### OpenCode Go
+![OpenCode Go budget meter](docs/images/demo-opencode-go.png)
+
+### OpenCode Zen
+![OpenCode Zen budget meter](docs/images/demo-opencode-zen.png)
+
+### GitHub Copilot
+![GitHub Copilot budget meter](docs/images/demo-copilot.png)
+
 ## Getting Started
 
 ### 1. Install dependencies
