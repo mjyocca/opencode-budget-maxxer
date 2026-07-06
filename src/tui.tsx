@@ -37,19 +37,17 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
     refreshStatus();
   });
 
-  let currentSessionID: string | null = null;
-  const unsubSession = api.event.on("tui.session.select", (event: any) => {
-    currentSessionID = event.properties.sessionID;
-  });
+  const [currentSessionID, setCurrentSessionID] = createSignal<string | null>(null);
 
   logger.info("TUI plugin initialized — slots registered");
 
   api.slots.register({
     order: SIDEBAR_ORDER,
     slots: {
-      sidebar_content: (_ctx, props) => (
-        <BudgetMeterView api={api} sessionID={props.session_id} />
-      ),
+      sidebar_content: (_ctx, props) => {
+        setCurrentSessionID(props.session_id ?? null);
+        return <BudgetMeterView api={api} sessionID={props.session_id} />;
+      },
     },
   });
 
@@ -118,7 +116,8 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
                   title="Select Provider"
                   options={options}
                   onSelect={async (option: any) => {
-                    if (!currentSessionID) {
+                    const sessionID = currentSessionID();
+                    if (!sessionID) {
                       api.ui.toast?.({
                         message: "No active session",
                         variant: "warning",
@@ -126,14 +125,14 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
                       return;
                     }
                     if (option.value === "__auto__") {
-                      await setSessionOverrideProvider(currentSessionID, null);
+                      await setSessionOverrideProvider(sessionID, null);
                       api.ui.toast?.({
                         message: "Now following active model",
                         variant: "info",
                       });
                     } else {
                       await setSessionOverrideProvider(
-                        currentSessionID,
+                        sessionID,
                         option.value,
                       );
                       api.ui.toast?.({
@@ -149,14 +148,15 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
               return;
             }
             if (arg === "auto" || arg === "__auto__") {
-              if (!currentSessionID) {
+              const sessionID = currentSessionID();
+              if (!sessionID) {
                 api.ui.toast?.({
                   message: "No active session",
                   variant: "warning",
                 });
                 return;
               }
-              await setSessionOverrideProvider(currentSessionID, null);
+              await setSessionOverrideProvider(sessionID, null);
               api.ui.toast?.({
                 message: "Now following active model",
                 variant: "info",
@@ -173,14 +173,15 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
               });
               return;
             }
-            if (!currentSessionID) {
+            const sessionID = currentSessionID();
+            if (!sessionID) {
               api.ui.toast?.({
                 message: "No active session",
                 variant: "warning",
               });
               return;
             }
-            await setSessionOverrideProvider(currentSessionID, match.id);
+            await setSessionOverrideProvider(sessionID, match.id);
             api.ui.toast?.({
               message: `Now showing ${match.label}`,
               variant: "info",
@@ -200,7 +201,6 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
     logger.info("TUI plugin disposing");
     clearInterval(interval);
     unsubEvent();
-    unsubSession();
   });
 };
 
