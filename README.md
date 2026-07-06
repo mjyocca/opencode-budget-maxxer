@@ -1,14 +1,15 @@
-# opencode-plugin-kit
+# opencode-budget-maxxer
 
-Starter kit for building [opencode](https://opencode.ai) plugins with server and TUI support.
+Surface provider usage limits and quota data for OpenCode and GitHub Copilot backends, displayed in the TUI sidebar with per-session provider override.
 
-## What You Get
+## Features
 
-- **Server plugin** — hooks, tools, event handling via `@opencode-ai/plugin` SDK
-- **TUI plugin** — JSX-based terminal UI with slot renderers via `@opentui/solid`
-- **Agent skills** — Guided development workflows loaded automatically
-- **Reference docs** — Comprehensive SDK and architecture guides
-- **Library utilities** — SDK logger, config patterns
+- **Provider quota display** — Shows remaining usage limits for OpenCode Go, OpenCode Zen, and GitHub Copilot
+- **Per-session tracking** — Each session independently tracks which provider's quota to display
+- **Manual override** — Switch the sidebar to show any provider regardless of the active model via `/budget:show`
+- **Auto-follow** — Default mode follows the active model in each session
+- **TUI sidebar meter** — Visual budget meter with provider name, usage bar, and reset time
+- **Three built-in providers** — Go, Zen, and Copilot with auth resolution and API polling
 
 ## Getting Started
 
@@ -18,24 +19,13 @@ Starter kit for building [opencode](https://opencode.ai) plugins with server and
 pnpm install
 ```
 
-### 2. Set your plugin name
-
-The template uses `opencode-plugin-kit` as a placeholder. Replace it with your plugin name:
-
-- `package.json` — name field
-- `src/lib/constants.ts` — PLUGIN_ID
-- `src/index.ts` — tool output message
-- `src/tui.tsx` — sidebar title
-
-**Or** open opencode and load the `plugin-quick-start` skill — it will guide you through renaming.
-
-### 3. Build
+### 2. Build
 
 ```bash
 pnpm run build
 ```
 
-### 4. Install in opencode
+### 3. Install in opencode
 
 **Server plugin** — set `OPENCODE_CONFIG_CONTENT` (no global config needed):
 
@@ -51,9 +41,9 @@ Or copy `cp .env.local.example .env.local` and use direnv. The relative path `./
 pnpm run dev:install
 ```
 
-### 5. Restart opencode
+### 4. Restart opencode
 
-Your plugin is now loaded. Test it with the `hello` tool (server) or check the sidebar (TUI).
+The budget meter appears in the sidebar once a session is active. Use `/budget:show` to switch providers.
 
 ---
 
@@ -63,69 +53,42 @@ Your plugin is now loaded. Test it with the `hello` tool (server) or check the s
 pnpm run build       # Build both server and TUI plugins
 pnpm run dev         # Watch mode (server only)
 pnpm run build:check # Type-check without emitting
+pnpm test            # Run test suite
 ```
 
 ---
 
-## Project Structure
+## Architecture
 
 ```
 src/
-├── index.ts          # Server plugin — hooks, tools, events
-├── tui.tsx           # TUI plugin entry point — JSX slot registrations
-└── ..
-
-.agents/skills/       # Development skills (loaded automatically)
-├── plugin-quick-start/SKILL.md
-├── plugin-server/SKILL.md
-├── plugin-tui/SKILL.md
-├── solidjs-tui/SKILL.md
-├── plugin-logging/SKILL.md
-├── plugin-config-patterns/SKILL.md
-├── opencode-agents/SKILL.md
-└── opencode-troubleshooting/SKILL.md
-
-docs/instructions/    # Reference documentation
-├── opencode-plugin-architecture.md
-├── sdk-reference.md
-└── ecosystem-reference.md
+├── index.ts                  # Server plugin — hooks, tools, chat.headers
+├── tui.tsx                   # TUI plugin — sidebar slot, /budget:show command
+├── cache.ts                  # Per-session quota cache with mutex, provider alias mapping
+├── lib/
+│   ├── core/                 # Constants, types
+│   ├── http/                 # HTTP fetch wrapper, retry, errors
+│   ├── auth/                 # Auth file reader, credential resolution
+│   ├── provider/             # Provider result types, helpers
+│   ├── hooks/                # Hook composition utilities
+│   └── ...                   # Config discovery, runtime paths, mutex, etc.
+└── providers/
+    ├── opencode-go/          # Go provider — auth, API, adapter
+    ├── opencode-zen/         # Zen provider — auth, API, adapter
+    └── copilot/              # Copilot provider — auth, API, adapter
 ```
 
----
+### Key Design Decisions
 
-## Skills
-
-Agent skills are loaded automatically when you open this project in opencode.
-
-**Start here:**
-- `plugin-quick-start` — Set plugin name, add a tool, handle events, add TUI slot
-
-**Next steps:**
-- `plugin-server` — Advanced hook patterns, client API reference
-- `plugin-tui` — JSX components, slots, theme colors, troubleshooting
-- `solidjs-tui` — SolidJS primitives for TUI (signals, effects, stores, lifecycle)
-- `plugin-logging` — Structured logging, debug modes
-- `plugin-config-patterns` — Config resolution, API key lookup
-
-See [AGENTS.md](./AGENTS.md) for the full development guide.
-
----
-
-## Common First Tasks
-
-1. **Add a tool** — Define a function the AI can call during sessions
-2. **Handle an event** — React to session lifecycle, messages, file edits
-3. **Add a TUI slot** — Render UI in the terminal sidebar, home screen, or prompt area
-4. **Add logging** — Structured logging with SDK or stderr fallback
-5. **Read config** — Access opencode config or plugin-specific settings
-
-All patterns are documented in the `plugin-quick-start` skill.
+- **One-way dependency arrow**: `index.ts` → `providers/` → `lib/`
+- **Mutex-protected cache**: All cache read-modify-write operations serialized
+- **Provider ID aliases**: `mapProviderID()` normalizes provider IDs across opencode versions
+- **Slot-driven session tracking**: `sidebar_content` slot props provide reliable session context
+- **Per-session override**: `setSessionOverrideProvider()` stores user preference per session
 
 ---
 
 ## Exports
-
-This package exports both server and TUI plugins:
 
 | Export Path | File | Purpose |
 |-------------|------|---------|

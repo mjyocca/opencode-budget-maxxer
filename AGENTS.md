@@ -1,16 +1,17 @@
-# Your Plugin — Development Guide
+# Budget Maxxer — Development Guide
 
 ## What This Is
 
-A **starter kit** for building opencode plugins with **server** (SDK hooks, tools, events) and **TUI** (JSX-based terminal UI) support.
+An opencode plugin that surfaces provider usage limits and quota data in the TUI sidebar. Supports OpenCode Go, OpenCode Zen, and GitHub Copilot with per-session provider tracking and manual override.
 
-**You get:**
-- **Library primitives** — SDK logger, config patterns
-- **Reference documentation** — Comprehensive guides for plugin architecture, SDK, and ecosystem
-- **Agent skills** — Action-oriented guides for common plugin development tasks
-- **Working examples** — Server plugin with SDK logger, TUI plugin with slots and events
+**Key features:**
+- **Provider quota polling** — Fetches usage limits from provider APIs on a refresh interval
+- **Per-session state** — Each session independently tracks which provider to display
+- **Manual override** — `/budget:show` lets users pin the sidebar to any provider
+- **Auto-follow mode** — Default behavior follows the active model in each session
+- **TUI sidebar meter** — Visual display with provider name, usage bar, and reset time
 
-**First time?** Load the `plugin-quick-start` skill to set your plugin name and learn common patterns.
+**First time?** Load the `plugin-quick-start` skill to learn common plugin patterns.
 
 ---
 
@@ -39,29 +40,22 @@ pnpm run dev
 ## Project Structure
 
 ```
-your-plugin-name/
+opencode-budget-maxxer/
 ├── src/
-│   ├── index.ts          # Server plugin — hooks, tools, events
-│   ├── tui.tsx           # TUI plugin entry point — JSX slot registrations
-│   └── ..
-├── docs/
-│   └── instructions/
-│       ├── opencode-plugin-architecture.md  # Comprehensive opencode reference
-│       ├── sdk-reference.md                 # Complete SDK API documentation
-│       └── ecosystem-reference.md           # Curated community resources
+│   ├── index.ts          # Server plugin — hooks, tools, chat.headers
+│   ├── tui.tsx           # TUI plugin — sidebar slot, /budget:show command
+│   ├── cache.ts          # Per-session quota cache, mutex, provider alias mapping
+│   ├── lib/              # Shared utilities (HTTP, auth, config, hooks)
+│   └── providers/        # Provider implementations (Go, Zen, Copilot)
+├── tests/                # Test suite
 ├── scripts/
-│   └── build-tui.mjs     # Copies tui.tsx → dist/tui.tsx (no compilation)
+│   ├── build-tui.mjs     # Copies tui.tsx → dist/tui.tsx (no compilation)
+│   ├── dev-tui-install.mjs
+│   └── dev-tui-uninstall.mjs
 ├── dist/                 # Build output
-├── package.json          # Single package, exports for . /server /tui
+├── package.json
 ├── tsconfig.json         # jsx: "preserve" (required for TUI runtime)
 ├── .agents/skills/       # Agent skills for development guidance
-│   ├── plugin-quick-start/SKILL.md
-│   ├── plugin-server/SKILL.md
-│   ├── plugin-tui/SKILL.md
-│   ├── plugin-logging/SKILL.md
-│   ├── plugin-config-patterns/SKILL.md
-│   ├── opencode-agents/SKILL.md
-│   └── opencode-troubleshooting/SKILL.md
 └── AGENTS.md             # This file
 ```
 
@@ -94,7 +88,7 @@ You can set this in your .envrc or .env.local. The server plugin uses a **relati
 TUI config has no local equivalent — run `pnpm run dev:install` to add the workspace to `~/.config/opencode/tui.json`, or manually edit:
 
 ```json
-["/absolute/path/to/your-plugin"]
+["/absolute/path/to/opencode-budget-maxxer"]
 ```
 
 The TUI runtime loads `tui.tsx` from the `dist/` directory.
@@ -104,7 +98,7 @@ The TUI runtime loads `tui.tsx` from the `dist/` directory.
 ```json
 {
   "plugin": [
-    "your-plugin-name"
+    "opencode-budget-maxxer"
   ]
 }
 ```
@@ -115,7 +109,7 @@ The TUI runtime loads `tui.tsx` from the `dist/` directory.
 
 ### Server Plugin
 
-1. Edit `src/index.ts`
+1. Edit `src/index.ts` or provider files
 2. `pnpm run build` (or `pnpm run dev` for watch)
 3. Restart opencode to pick up changes
 
@@ -131,7 +125,7 @@ Server plugin — use SDK logger:
 ```ts
 await client.app.log({
   body: {
-    service: "your-plugin-name",
+    service: "opencode-budget-maxxer",
     level: "debug",
     message: "Plugin initialized",
     extra: { project, directory },
@@ -143,7 +137,7 @@ TUI plugin — use SDK logger (no stderr fallback to avoid UI pollution):
 ```ts
 await api.client?.app?.log?.({
   body: {
-    service: "your-plugin-tui",
+    service: "budget-maxxer-tui",
     level: "info",
     message: "TUI initialized",
   },
@@ -152,7 +146,7 @@ await api.client?.app?.log?.({
 
 Filter logs:
 ```bash
-opencode --log-level DEBUG --print-logs 2>&1 | grep "your-plugin"
+opencode --log-level DEBUG --print-logs 2>&1 | grep "budget-maxxer"
 ```
 
 See [plugin-logging](./.agents/skills/plugin-logging/SKILL.md) for complete patterns. Note: TUI plugins use the SDK logger with no stderr fallback.
@@ -190,15 +184,27 @@ For the complete list of hooks, events, slots, and components, see the [architec
 
 ---
 
-## Common First Tasks
+## Architecture Notes
 
-New to plugin development? Start with these skills:
+### Dependency Direction
 
-1. **Add a tool** — See [plugin-quick-start](./.agents/skills/plugin-quick-start/SKILL.md#adding-a-tool)
-2. **Handle an event** — See [plugin-quick-start](./.agents/skills/plugin-quick-start/SKILL.md#handling-events)
-3. **Add a TUI slot** — See [plugin-quick-start](./.agents/skills/plugin-quick-start/SKILL.md#adding-a-tui-slot)
-4. **Add logging** — See [plugin-logging](./.agents/skills/plugin-logging/SKILL.md)
-5. **Read config** — See [plugin-config-patterns](./.agents/skills/plugin-config-patterns/SKILL.md)
+```
+index.ts → providers/ → lib/
+```
+
+Nothing in `lib/` imports from `providers/`. Provider files are self-contained implementations that the server plugin consumes.
+
+### Cache Design
+
+`src/cache.ts` manages per-session quota state with:
+- **Mutex** — Serializes all read-modify-write operations to prevent race conditions
+- **Provider alias mapping** — `mapProviderID()` normalizes IDs across opencode versions
+- **Session override storage** — Users can pin a session to a specific provider
+- **Migration support** — Handles schema changes between versions
+
+### Session Tracking
+
+The TUI plugin tracks the current session via `sidebar_content` slot props (`props.session_id`), not via `tui.session.select` events. This ensures the session ID is available on plugin load, not just on session switches.
 
 ---
 
