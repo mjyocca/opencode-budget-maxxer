@@ -9,7 +9,7 @@ import type {
 import { resolveZenCredentials } from "./zen.auth";
 import { queryZenUsage } from "./zen.api";
 import type { ZenUsage } from "./zen.types";
-import { mergeQuotaCache } from "@/budget-cache";
+import { mergeQuotaCache } from "@/cache";
 import { createSdkLogger } from "@/lib/core/logger";
 import { openZenDashboard } from "@/lib/setup/zen-setup";
 
@@ -38,7 +38,7 @@ export class OpencodeZenProvider implements Provider {
           message,
           variant: result.opened ? "info" : "warning",
         });
-      }
+      },
     };
   }
 
@@ -74,7 +74,10 @@ export class OpencodeZenProvider implements Provider {
     const poll = async () => {
       const result = await this.fetchProviderApi<ZenUsage>("/usage");
       if (result.attempted && result.data) {
-        mergeQuotaCache("opencode", result.data as unknown as Record<string, unknown>);
+        mergeQuotaCache(
+          "opencode",
+          result.data as unknown as Record<string, unknown>,
+        );
         await logger.debug(`Zen usage cached: ${JSON.stringify(result.data)}`);
       }
     };

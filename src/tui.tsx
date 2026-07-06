@@ -13,7 +13,7 @@ import {
   BudgetMeterView,
   SessionPromptAugmentedView,
 } from "@/tui/index.js";
-import { setActiveProvider } from "@/budget-cache";
+import { setActiveProvider } from "@/cache";
 import { PROVIDERS, createTuiRegistry } from "@/providers";
 
 const SIDEBAR_ORDER = 300;
@@ -90,7 +90,10 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
             if (!arg) {
               const DialogSelect = (api as any).ui?.DialogSelect;
               if (!DialogSelect) {
-                api.ui.toast?.({ message: "DialogSelect not available", variant: "warning" });
+                api.ui.toast?.({
+                  message: "DialogSelect not available",
+                  variant: "warning",
+                });
                 return;
               }
               api.ui.dialog?.replace?.(() => (
@@ -104,20 +107,31 @@ const tui: TuiPlugin = async (api: TuiPluginApi, _options) => {
                   onSelect={(option: any) => {
                     setActiveProvider(option.value);
                     api.ui.dialog?.clear?.();
-                    api.ui.toast?.({ message: `Now showing ${option.title}`, variant: "info" });
+                    api.ui.toast?.({
+                      message: `Now showing ${option.title}`,
+                      variant: "info",
+                    });
                   }}
                 />
               ));
               api.ui.dialog?.setSize?.("medium");
               return;
             }
-            const match = PROVIDERS.find(p => p.id === arg || p.id.replace("-", "_") === arg);
+            const match = PROVIDERS.find(
+              (p) => p.id === arg || p.id.replace("-", "_") === arg,
+            );
             if (!match) {
-              api.ui.toast?.({ message: `Unknown provider: ${arg}`, variant: "warning" });
+              api.ui.toast?.({
+                message: `Unknown provider: ${arg}`,
+                variant: "warning",
+              });
               return;
             }
             setActiveProvider(match.id);
-            api.ui.toast?.({ message: `Now showing ${match.label}`, variant: "info" });
+            api.ui.toast?.({
+              message: `Now showing ${match.label}`,
+              variant: "info",
+            });
           },
         },
         ...setupCommands,

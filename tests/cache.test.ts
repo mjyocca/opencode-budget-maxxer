@@ -24,13 +24,13 @@ describe("budget-cache", () => {
   });
 
   it("returns null when cache file doesn't exist", async () => {
-    const { readCache } = await import("@/budget-cache");
+    const { readCache } = await import("@/cache");
     const result = readCache();
     expect(result).toBeNull();
   });
 
   it("writes and reads cache data", async () => {
-    const { readCache, writeCache } = await import("@/budget-cache");
+    const { readCache, writeCache } = await import("@/cache");
     const entries = [
       { provider: "opencode-go", timestamp: 123, data: { foo: "bar" } },
     ];
@@ -44,22 +44,26 @@ describe("budget-cache", () => {
   });
 
   it("mergeQuotaCache adds new provider entry", async () => {
-    const { readCache, mergeQuotaCache } = await import("@/budget-cache");
-    mergeQuotaCache("opencode", { balance: 15.20 });
+    const { readCache, mergeQuotaCache } = await import("@/cache");
+    mergeQuotaCache("opencode", { balance: 15.2 });
 
     const result = readCache();
     expect(result).not.toBeNull();
     expect(result!.entries).toHaveLength(1);
     expect(result!.entries[0].provider).toBe("opencode");
-    expect(result!.entries[0].data.balance).toBe(15.20);
+    expect(result!.entries[0].data.balance).toBe(15.2);
   });
 
   it("mergeQuotaCache updates existing provider without overwriting others", async () => {
-    const { readCache, writeCache, mergeQuotaCache } = await import("@/budget-cache");
+    const { readCache, writeCache, mergeQuotaCache } = await import("@/cache");
 
     writeCache({
       entries: [
-        { provider: "opencode-go", timestamp: 100, data: { rolling5h: { usagePercent: 45 } } },
+        {
+          provider: "opencode-go",
+          timestamp: 100,
+          data: { rolling5h: { usagePercent: 45 } },
+        },
         { provider: "opencode", timestamp: 100, data: { balance: 10 } },
       ],
       updatedAt: 100,
@@ -78,7 +82,7 @@ describe("budget-cache", () => {
   });
 
   it("setActiveProvider writes active provider to cache", async () => {
-    const { readCache, setActiveProvider } = await import("@/budget-cache");
+    const { readCache, setActiveProvider } = await import("@/cache");
     setActiveProvider("opencode-go");
 
     const result = readCache();
@@ -87,7 +91,8 @@ describe("budget-cache", () => {
   });
 
   it("setActiveProvider preserves existing entries", async () => {
-    const { readCache, writeCache, mergeQuotaCache, setActiveProvider } = await import("@/budget-cache");
+    const { readCache, writeCache, mergeQuotaCache, setActiveProvider } =
+      await import("@/cache");
 
     mergeQuotaCache("opencode-go", { rolling5h: { usagePercent: 45 } });
     mergeQuotaCache("opencode", { balance: 15 });

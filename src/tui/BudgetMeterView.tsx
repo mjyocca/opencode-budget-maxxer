@@ -3,8 +3,12 @@
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui";
 import { TextAttributes } from "@opentui/core";
 import { Show, createSignal, createEffect, onCleanup } from "solid-js";
-import { readCache } from "@/budget-cache";
-import { renderGoSidebar, renderZenSidebar, renderCopilotSidebar } from "./renderers/index.js";
+import { readCache } from "@/cache";
+import {
+  renderGoSidebar,
+  renderZenSidebar,
+  renderCopilotSidebar,
+} from "./renderers/index.js";
 import type { GoRateLimit } from "@/providers/opencode-go/go.types";
 import type { ZenUsage } from "@/providers/opencode-zen/zen.types";
 import type { CopilotUsage } from "@/providers/copilot/copilot.types";
@@ -69,7 +73,8 @@ export function BudgetMeterView(props: {
   const interval = setInterval(refresh, READ_INTERVAL_MS);
   onCleanup(() => clearInterval(interval));
 
-  const hasData = () => goData() !== null || zenData() !== null || copilotData() !== null;
+  const hasData = () =>
+    goData() !== null || zenData() !== null || copilotData() !== null;
 
   return (
     <box>
@@ -78,13 +83,25 @@ export function BudgetMeterView(props: {
       </text>
       <Show when={hasData()}>
         <Show when={goData() && activeProvider() === "opencode-go"}>
-          {renderGoSidebar(goData(), activeProvider() === "opencode-go", theme())}
+          {renderGoSidebar(
+            goData(),
+            activeProvider() === "opencode-go",
+            theme(),
+          )}
         </Show>
         <Show when={zenData() && activeProvider() === "opencode"}>
-          {renderZenSidebar(zenData(), activeProvider() === "opencode", theme())}
+          {renderZenSidebar(
+            zenData(),
+            activeProvider() === "opencode",
+            theme(),
+          )}
         </Show>
         <Show when={copilotData() && activeProvider() === "copilot"}>
-          {renderCopilotSidebar(copilotData(), activeProvider() === "copilot", theme())}
+          {renderCopilotSidebar(
+            copilotData(),
+            activeProvider() === "copilot",
+            theme(),
+          )}
         </Show>
       </Show>
       <Show when={!hasData()}>

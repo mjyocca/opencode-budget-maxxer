@@ -8,7 +8,7 @@ import type {
 import { resolveCopilotToken } from "./copilot.auth";
 import { queryCopilotUsage } from "./copilot.api";
 import type { CopilotUsage } from "./copilot.types";
-import { mergeQuotaCache } from "@/budget-cache";
+import { mergeQuotaCache } from "@/cache";
 import { createSdkLogger } from "@/lib/core/logger";
 
 const POLL_INTERVAL_MS = 15_000;
@@ -55,8 +55,13 @@ export class CopilotProvider implements Provider {
     const poll = async () => {
       const result = await this.fetchProviderApi<CopilotUsage>("/usage");
       if (result.attempted && result.data) {
-        mergeQuotaCache("copilot", result.data as unknown as Record<string, unknown>);
-        await logger.debug(`Copilot usage cached: ${JSON.stringify(result.data)}`);
+        mergeQuotaCache(
+          "copilot",
+          result.data as unknown as Record<string, unknown>,
+        );
+        await logger.debug(
+          `Copilot usage cached: ${JSON.stringify(result.data)}`,
+        );
       }
     };
 

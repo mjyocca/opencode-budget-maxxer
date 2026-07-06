@@ -9,7 +9,7 @@ import type {
 import { resolveGoCredentials } from "./go.auth";
 import { queryGoRateLimit } from "./go.api";
 import type { GoRateLimit } from "./go.types";
-import { mergeQuotaCache } from "@/budget-cache";
+import { mergeQuotaCache } from "@/cache";
 import { createSdkLogger } from "@/lib/core/logger";
 import { openGoDashboard } from "@/lib/setup/go-setup";
 
@@ -38,7 +38,7 @@ export class OpencodeGoProvider implements Provider {
           message,
           variant: result.opened ? "info" : "warning",
         });
-      }
+      },
     };
   }
 
@@ -74,7 +74,10 @@ export class OpencodeGoProvider implements Provider {
     const poll = async () => {
       const result = await this.fetchProviderApi<GoRateLimit>("/rate-limit");
       if (result.attempted && result.data) {
-        mergeQuotaCache("opencode-go", result.data as unknown as Record<string, unknown>);
+        mergeQuotaCache(
+          "opencode-go",
+          result.data as unknown as Record<string, unknown>,
+        );
         await logger.debug(`Go quota cached: ${JSON.stringify(result.data)}`);
       }
     };
