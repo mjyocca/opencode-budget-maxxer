@@ -44,7 +44,8 @@ bash <(curl -s https://raw.githubusercontent.com/mjyocca/opencode-budget-maxxer/
 This script:
 - Clones the plugin into OpenCode's global plugins directory
 - Installs dependencies and builds the plugin
-- Registers the TUI plugin in your config
+- Registers the server plugin in `opencode.json`
+- Registers the TUI plugin in `tui.json`
 - Works on macOS, Linux, and Windows
 
 ### Manual Install
@@ -59,11 +60,17 @@ cd ~/.config/opencode/plugins/opencode-budget-maxxer
 pnpm install
 pnpm build
 
-# 3. Register TUI plugin
+# 3. Register server and TUI plugins
 pnpm plugin:install
 ```
 
 **Note:** On macOS, use `~/Library/Application Support/opencode/plugins/opencode-budget-maxxer` instead.
+
+The `plugin:install` command registers the plugin in two config files:
+- **Server plugin**: Added to `opencode.json` in your config directory
+- **TUI plugin**: Added to `tui.json` in your config directory
+
+Both configs use `comment-json` to preserve any existing comments and settings.
 
 ### Updating
 

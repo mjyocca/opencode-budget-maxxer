@@ -12,10 +12,21 @@ Plugins are JavaScript/TypeScript modules that extend opencode by hooking into e
 
 | Method | Location | Notes |
 |--------|----------|-------|
-| Local files | `.opencode/plugins/` (project) | Automatically loaded at startup |
-| Local files | `~/.config/opencode/plugins/` (global) | Automatically loaded at startup |
+| Individual files | `.opencode/plugins/*.js` (project) | Auto-loaded: single `.js`/`.ts` files directly in directory |
+| Individual files | `~/.config/opencode/plugins/*.js` (global) | Auto-loaded: single `.js`/`.ts` files directly in directory |
+| Plugin packages | `opencode.json` → `"plugin"` array | Required for directories with `package.json` |
 | npm packages | `opencode.json` → `"plugin"` array | Cached in `~/.cache/opencode/node_modules/` |
 | TUI plugins | `~/.config/opencode/tui.json` | Array of paths or package names |
+
+**Important:** Plugin packages (directories containing `package.json`) are **not** auto-loaded from the plugins directory. They must be explicitly registered in `opencode.json`:
+
+```json
+{
+  "plugin": ["/absolute/path/to/plugin-package"]
+}
+```
+
+The glob pattern `{plugin,plugins}/*.{ts,js}` only matches individual files directly in the plugins directory, not files in subdirectories.
 
 ### Load Order
 

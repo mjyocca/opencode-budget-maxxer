@@ -91,7 +91,13 @@ main() {
         warn "Plugin directory not found: $PLUGIN_DIR"
         info "Server plugin may not be installed"
     else
-        # Remove TUI plugin registration first (while scripts still exist)
+        # Remove server plugin registration first (while scripts still exist)
+        if [ -f "$PLUGIN_DIR/scripts/uninstall-server.mjs" ]; then
+            info "Removing server plugin registration..."
+            node "$PLUGIN_DIR/scripts/uninstall-server.mjs"
+        fi
+        
+        # Remove TUI plugin registration (while scripts still exist)
         if [ -f "$PLUGIN_DIR/scripts/uninstall-tui.mjs" ]; then
             info "Removing TUI plugin registration..."
             node "$PLUGIN_DIR/scripts/uninstall-tui.mjs"

@@ -147,7 +147,11 @@ main() {
     fi
     
     echo ""
-    info "Installing TUI plugin..."
+    info "Registering server plugin..."
+    node "$PLUGIN_DIR/scripts/install-server.mjs"
+    
+    echo ""
+    info "Registering TUI plugin..."
     node "$PLUGIN_DIR/scripts/install-tui.mjs"
     
     echo ""

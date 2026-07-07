@@ -73,9 +73,23 @@ opencode-budget-maxxer/
 
 ## Installing in opencode
 
-### Local config (recommended)
+### Global installation (recommended)
 
-Use `OPENCODE_CONFIG_CONTENT` to inject the plugin entry without touching global config:
+Use `pnpm run plugin:install` to register both server and TUI plugins globally:
+
+```bash
+pnpm run plugin:install
+```
+
+This adds the plugin to:
+- **Server plugin**: `opencode.json` in your config directory
+- **TUI plugin**: `tui.json` in your config directory
+
+Both configs use `comment-json` to preserve any existing comments and settings.
+
+### Local development
+
+For local development without global registration, use `OPENCODE_CONFIG_CONTENT` to inject the plugin entry:
 
 ```bash
 export OPENCODE_CONFIG_CONTENT='{"plugin":["./dist/index.js"]}'
@@ -83,9 +97,7 @@ export OPENCODE_CONFIG_CONTENT='{"plugin":["./dist/index.js"]}'
 
 You can set this in your .envrc or .env.local. The server plugin uses a **relative path** (`./dist/index.js`) so it resolves correctly from any workspace location.
 
-### TUI plugin (global only)
-
-TUI config has no local equivalent — run `pnpm run dev:install` to add the workspace to `~/.config/opencode/tui.json`, or manually edit:
+For TUI plugin during local development, run `pnpm run dev:install` to add the workspace to `~/.config/opencode/tui.json`, or manually edit:
 
 ```json
 ["/absolute/path/to/opencode-budget-maxxer"]
